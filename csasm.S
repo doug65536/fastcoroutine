@@ -1,8 +1,8 @@
 // .asm
 
 // branch hints
-#define nottaken	.byte 0x2E
-#define taken		  .byte 0x3E
+#define nottaken  .byte 0x2E
+#define taken     .byte 0x3E
 
 .text
 
@@ -11,8 +11,8 @@
 .globl get_TEB
 get_TEB:
   // Actual linear address of TEB is stored at gs:[0x30]
-	gs movq 0x30,%rax
-	ret
+  gs movq 0x30,%rax
+  ret
 
 // SwitchToNextTask_Frame STRUCT
 .struct 0
@@ -52,69 +52,69 @@ SwitchToNextTask_Frame_size:
 
 .globl SwitchToNextTask
 SwitchToNextTask:
- 	lea -SwitchToNextTask_Frame_size(%rsp),%rcx
-	sub $(4*8 + SwitchToNextTask_Frame_size + 8),%rsp
+  lea -SwitchToNextTask_Frame_size(%rsp),%rcx
+  sub $(4*8 + SwitchToNextTask_Frame_size + 8),%rsp
 
-	// Save context
-	movdqa %xmm6 ,c_xmm6 (%rcx)
-	movdqa %xmm7 ,c_xmm7 (%rcx)
-	movdqa %xmm8 ,c_xmm8 (%rcx)
-	movdqa %xmm9 ,c_xmm9 (%rcx)
-	movdqa %xmm10,c_xmm10(%rcx)
-	movdqa %xmm11,c_xmm11(%rcx)
-	movdqa %xmm12,c_xmm12(%rcx)
-	movdqa %xmm13,c_xmm13(%rcx)
-	movdqa %xmm14,c_xmm14(%rcx)
-	movdqa %xmm15,c_xmm15(%rcx)
+  // Save context
+  movdqa %xmm6 ,c_xmm6 (%rcx)
+  movdqa %xmm7 ,c_xmm7 (%rcx)
+  movdqa %xmm8 ,c_xmm8 (%rcx)
+  movdqa %xmm9 ,c_xmm9 (%rcx)
+  movdqa %xmm10,c_xmm10(%rcx)
+  movdqa %xmm11,c_xmm11(%rcx)
+  movdqa %xmm12,c_xmm12(%rcx)
+  movdqa %xmm13,c_xmm13(%rcx)
+  movdqa %xmm14,c_xmm14(%rcx)
+  movdqa %xmm15,c_xmm15(%rcx)
 
-	mov %r15, c_r15(%rcx)
-	mov %r14, c_r14(%rcx)
-	mov %r13, c_r13(%rcx)
-	mov %r12, c_r12(%rcx)
-	mov %rdi, c_rdi(%rcx)
-	mov %rsi, c_rsi(%rcx)
-	mov %rbp, c_rbp(%rcx)
-	mov %rbx, c_rbx(%rcx)
+  mov %r15, c_r15(%rcx)
+  mov %r14, c_r14(%rcx)
+  mov %r13, c_r13(%rcx)
+  mov %r12, c_r12(%rcx)
+  mov %rdi, c_rdi(%rcx)
+  mov %rsi, c_rsi(%rcx)
+  mov %rbp, c_rbp(%rcx)
+  mov %rbx, c_rbx(%rcx)
 
-	// We already provided 4 quadwords of spill space above
+  // We already provided 4 quadwords of spill space above
 
-	movq %rcx,%rbx
+  movq %rcx,%rbx
 
-	// rcx has register argument already
-	call ScheduleTask
+  // rcx has register argument already
+  call ScheduleTask
 
-	movq %rbx,%rax
+  movq %rbx,%rax
 
-	// Get jump target loaded ASAP, in case it speculatively
-	// make it to the jmp early, it might help
-	mov SwitchToNextTask_Frame_size(%rax),%rcx
+  // Get jump target loaded ASAP, in case it speculatively
+  // make it to the jmp early, it might help
+  mov SwitchToNextTask_Frame_size(%rax),%rcx
 
-	// Compute new stack pointer value ASAP
- 	lea (4*8) + SwitchToNextTask_Frame_size + 8(%rax),%rdx
+  // Compute new stack pointer value ASAP
+  lea (4*8) + SwitchToNextTask_Frame_size + 8(%rax),%rdx
 
-	// Restore context
-	movdqa c_xmm6 (%rax),%xmm6
-	movdqa c_xmm7 (%rax),%xmm7
-	movdqa c_xmm8 (%rax),%xmm8
-	movdqa c_xmm9 (%rax),%xmm9
-	movdqa c_xmm10(%rax),%xmm10
-	movdqa c_xmm11(%rax),%xmm11
-	movdqa c_xmm12(%rax),%xmm12
-	movdqa c_xmm13(%rax),%xmm13
-	movdqa c_xmm14(%rax),%xmm14
-	movdqa c_xmm15(%rax),%xmm15
+  // Restore context
+  movdqa c_xmm6 (%rax),%xmm6
+  movdqa c_xmm7 (%rax),%xmm7
+  movdqa c_xmm8 (%rax),%xmm8
+  movdqa c_xmm9 (%rax),%xmm9
+  movdqa c_xmm10(%rax),%xmm10
+  movdqa c_xmm11(%rax),%xmm11
+  movdqa c_xmm12(%rax),%xmm12
+  movdqa c_xmm13(%rax),%xmm13
+  movdqa c_xmm14(%rax),%xmm14
+  movdqa c_xmm15(%rax),%xmm15
 
-	mov c_r15(%rax),%r15
-	mov c_r14(%rax),%r14
-	mov c_r13(%rax),%r13
-	mov c_r12(%rax),%r12
-	mov c_rdi(%rax),%rdi
-	mov c_rsi(%rax),%rsi
-	mov c_rbp(%rax),%rbp
-	mov c_rbx(%rax),%rbx
+  mov c_r15(%rax),%r15
+  mov c_r14(%rax),%r14
+  mov c_r13(%rax),%r13
+  mov c_r12(%rax),%r12
+  mov c_rdi(%rax),%rdi
+  mov c_rsi(%rax),%rsi
+  mov c_rbp(%rax),%rbp
+  mov c_rbx(%rax),%rbx
 
-	mov %rdx,%rsp
-	jmp *%rcx
+  mov %rdx,%rsp
+  jmp *%rcx
 
 //.globl SwitchToTask
 //SwitchToTask:
