@@ -53,7 +53,7 @@ SwitchToNextTask_Frame_size:
 .globl SwitchToNextTask
 SwitchToNextTask:
   lea -SwitchToNextTask_Frame_size(%rsp),%rcx
-  sub $(4*8 + SwitchToNextTask_Frame_size + 8),%rsp
+  sub $(4*8 + 8 + SwitchToNextTask_Frame_size),%rsp
 
   // Save context
   movdqa %xmm6 ,c_xmm6 (%rcx)
@@ -78,19 +78,15 @@ SwitchToNextTask:
 
   // We already provided 4 quadwords of spill space above
 
-  movq %rcx,%rbx
+  //movq %rcx,%rbx
 
   // rcx has register argument already
   call ScheduleTask
 
-  movq %rbx,%rax
-
-  // Get jump target loaded ASAP, in case it speculatively
-  // make it to the jmp early, it might help
-  mov SwitchToNextTask_Frame_size(%rax),%rcx
+  //movq %rbx,%rax
 
   // Compute new stack pointer value ASAP
-  lea (4*8) + SwitchToNextTask_Frame_size + 8(%rax),%rdx
+  lea SwitchToNextTask_Frame_size(%rax),%rdx
 
   // Restore context
   movdqa c_xmm6 (%rax),%xmm6
@@ -114,7 +110,8 @@ SwitchToNextTask:
   mov c_rbx(%rax),%rbx
 
   mov %rdx,%rsp
-  jmp *%rcx
+  ret
+
 
 //.globl SwitchToTask
 //SwitchToTask:
@@ -148,6 +145,8 @@ SwitchToNextTask:
 // Stub loads register arguments from initial saved registers
 .globl StartNewTask
 StartNewTask:
+  // Reserve spill space
+  sub $(8*4),%rsp
 	mov %r12,%rcx
 	mov %r13,%rdx
 	mov %r14,%r8
@@ -156,4 +155,7 @@ StartNewTask:
 	movd %rdx,%xmm1
 	movd %r8, %xmm2
 	movd %r9, %xmm3
-	jmp *%rbp
+	call *%rbp
+0:
+	call task_exit
+  jmp 0b

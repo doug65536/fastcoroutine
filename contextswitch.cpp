@@ -144,14 +144,14 @@ extern "C" SavedContextFrame *ScheduleTask(SavedContextFrame *rsp)
   return current_task->rsp;
 }
 
-static void task_exit()
+extern "C" void task_exit()
 {
   current_task->state = Task::EXITED;
   SwitchToNextTask();
 }
 
 void test_thread(void *a1, void *a2, void *a3, void *a4)
-{
+ {
   for (auto i = 0; i < 1<<12; ++i)
   {
     union Horrible
