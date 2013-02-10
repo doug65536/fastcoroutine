@@ -30,7 +30,6 @@ struct SavedContextFrame
   void *r13; void *r12;
   void *rdi; void *rsi;
   void *rbp; void *rbx;
-  void (*rip)();
 };
 
 // This has a few extra entries at the bottom of
@@ -39,11 +38,7 @@ struct NewFrame
 {
   SavedContextFrame context;
 
-  void *context_switch_spillspace[4];
-
-  void *threadexit;
-  void *tread_exit_spillspace[4];
-  void *zero;
+  void (*rip)();
 };
 
 struct Task
@@ -151,6 +146,12 @@ extern "C" void task_exit()
 }
 
 void test_thread(void *a1, void *a2, void *a3, void *a4)
+{
+  for (auto i = 0; i < (1<<12); ++i)
+    SwitchToNextTask();
+}
+
+void test_thread2(void *a1, void *a2, void *a3, void *a4)
  {
   for (auto i = 0; i < 1<<12; ++i)
   {
@@ -225,9 +226,7 @@ void CreateTask(void (*f)(void*,void*,void*,void*),
   memset(&frame, 0xee, sizeof(frame));
 
 //  frame.context.unused = 0;
-  frame.context.rip = StartNewTask;
-  frame.threadexit = (void*)task_exit;
-  frame.zero = 0;
+  frame.rip = StartNewTask;
 
   // When we're creating a new task, we own all the registers
   // in the frame, so we put all the information into those
@@ -262,17 +261,13 @@ void CreateTask(void (*f)(void*,void*,void*,void*),
   GetTibStackRange(current_task);
 }
 
-class FiberGroup
-{
-};
-
 int main()
 {
   int64_t retry = 0;
   int64_t total = 0;
   for ( ; retry < 1024; ++retry)
   {
-    for (auto i = (char *)0; i < (char *)1; ++i)
+    for (auto i = (char *)0; i < (char *)8; ++i)
       CreateTask(test_thread, i + 1, i + 2, i + 3, i + 4);
 
     auto c1 = __rdtsc();
