@@ -25,8 +25,8 @@ extern "C" void task_terminate() { std::terminate(); }
 // the callee saved registers!
 struct SavedContextFrame
 {
-  // Pair-up the xmmwords because we need to prevent 16-byte alignment of size
-  void *r15;
+  // Pair-up the xmmwords because we need to prevent 16-byte alignment of xmm6
+  void *rbp;
   void *xmm6lo, *xmm6hi;
   void *xmm7lo, *xmm7hi;
   void *xmm8lo, *xmm8hi;
@@ -37,10 +37,10 @@ struct SavedContextFrame
   void *xmm13lo, *xmm13hi;
   void *xmm14lo, *xmm14hi;
   void *xmm15lo, *xmm15hi;
-  void *r14;
+  void *r15; void *r14;
   void *r13; void *r12;
   void *rdi; void *rsi;
-  void *rbp; void *rbx;
+  void *rbx;
 };
 
 // This has an extra entry at the bottom of
@@ -111,7 +111,7 @@ public:
     stack = (void**)_aligned_malloc(stacksize, 16) + 8;
 
     // Compute the location of the starting context and get a reference to it
-    auto &frame = ((NewFrame*)((char*)stack + stacksize))[-1];
+    NewFrame &frame = ((NewFrame*)((char*)stack + stacksize))[-1];
     memset(&frame, 0xee, sizeof(frame));
 
     //  frame.context.unused = 0;
@@ -340,6 +340,7 @@ private:
     Enumerator &self = *reinterpret_cast<Enumerator*>(a);
     AutoDone autodone(self.done);
     self.routine(self.buffer);
+    self.ReturnToOwner();
   }
 
   template<typename R>
@@ -388,22 +389,18 @@ public:
 
 void TestEnumeratorCoroutine(YieldBuffer<int> &out)
 {
-
-}
+  int i = 1;
+  do
+  {
+    i <<= 1;
+    out.YieldReturn(i);
+  }
+  while (i < (1<<20));
+};
 
 void TestEnumerator()
 {
-  auto routine = []
-  {
-    int i = 1;
-    do
-    {
-      i <<= 1;
-      out.YieldReturn(i);
-    }
-    while (i < (1<<20));
-  };
-  for (Enumerator<int> powersOfTwo(routine); powersOfTwo.Next(); )
+  for (Enumerator<int> powersOfTwo(TestEnumeratorCoroutine); powersOfTwo.Next(); )
   {
     std::cout << powersOfTwo.GetYield() << std::endl;
   }
