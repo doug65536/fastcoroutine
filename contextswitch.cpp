@@ -384,7 +384,7 @@ void TestEnumeratorCoroutine(YieldBuffer<int> &out)
   while (i < (1<<20));
 }
 
-void TestEnumerator()
+void Test()
 {
   for (Enumerator<int> powersOfTwo(TestEnumeratorCoroutine); powersOfTwo.Next(); )
   {
@@ -394,6 +394,6 @@ void TestEnumerator()
 
 int main()
 {
-  TestEnumerator();
+  Test();
   return 0;
 }
