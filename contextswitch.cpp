@@ -114,7 +114,6 @@ public:
     NewFrame &frame = ((NewFrame*)((char*)stack + stacksize))[-1];
     memset(&frame, 0xee, sizeof(frame));
 
-    //  frame.context.unused = 0;
     frame.rip = StartNewTask;
 
     // When we're creating a new task, we own all the registers
@@ -311,23 +310,6 @@ template<typename Y>
 class Enumerator
 {
 private:
-  struct AutoDone
-  {
-    bool &done;
-    AutoDone(bool &done)
-      : done(done)
-    {
-    }
-    ~AutoDone()
-    {
-      done = true;
-    }
-  };
-
-public:
-
-
-private:
   typedef typename std::function<void(YieldBuffer<Y>&)> RoutineType;
   YieldBuffer<Y> buffer;
   RoutineType routine;
@@ -338,19 +320,23 @@ private:
   static void StartupThunk(void *a, void *, void *, void *)
   {
     Enumerator &self = *reinterpret_cast<Enumerator*>(a);
-    AutoDone autodone(self.done);
     self.routine(self.buffer);
+    self.done = true;
     self.ReturnToOwner();
   }
 
   template<typename R>
   Enumerator(R &&routine,
-      typename std::enable_if<!std::is_convertible<R,RoutineType>::value>::type * = nullptr)
-      = delete;
+    typename std::enable_if<
+      !std::is_convertible<R,RoutineType>::value
+    >::type * = nullptr)
+    = delete;
 public:
   template<typename R>
   Enumerator(R &&routine,
-      typename std::enable_if<std::is_convertible<R,RoutineType>::value>::type * = nullptr)
+    typename std::enable_if<
+      std::is_convertible<R,RoutineType>::value
+    >::type * = nullptr)
     : routine(std::forward<R>(routine))
     , done(false)
     , buffer(*this)
@@ -359,7 +345,7 @@ public:
   {
     // Create a task for the routine
     // We pass a function pointer to the compiler generated thunk for this yield type
-    workerTask.CreateContext(StartupThunk, nullptr, nullptr, nullptr, nullptr);
+    workerTask.CreateContext(StartupThunk, this, nullptr, nullptr, nullptr);
   }
 
   void ReturnToOwner()
@@ -372,13 +358,13 @@ public:
     workerTask.SwitchTo(selfTask);
   }
 
-  // Returns lvalue reference to buffer
+  // Returns true if the coroutine is NOT finished
   bool Next()
   {
     // Switch to the coroutine and execute
     // until it yields something or returns
     ReturnToCoroutine();
-    return done;
+    return !done;
   }
 
   Y &GetYield()
@@ -396,7 +382,7 @@ void TestEnumeratorCoroutine(YieldBuffer<int> &out)
     out.YieldReturn(i);
   }
   while (i < (1<<20));
-};
+}
 
 void TestEnumerator()
 {

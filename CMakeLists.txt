@@ -5,7 +5,7 @@ message("SystemProcessor=${CMAKE_SYSTEM_PROCESSOR}")
 
 enable_language(ASM)
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -Wa,--msyntax=att -g")
-set(CMAKE_LINK_FLAGS "${CMAKE_ASM_FLAGS} -g")
+set(CMAKE_LINK_FLAGS "${CMAKE_LINK_FLAGS} -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
