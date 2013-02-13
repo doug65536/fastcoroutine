@@ -1,4 +1,7 @@
-// .asm
+// Copyright 2013 A. Douglas Gale
+// Permission is granted to use the fastcoroutine implementation
+// for any use (including commercial use), provided this copyright
+// notice is present in your product's source code.
 
 .text
 
