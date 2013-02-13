@@ -26,7 +26,7 @@ Currently implements an enumerator style coroutine interface:
 
 A coroutine allows you to "return" a value in the middle of a function,
 then continue execution and possibly return an unlimited number of values.
-The term "yield" used to describe this special type of returning a value.
+The term *yield* used to describe this special type of returning a value.
 
 Your coroutine must take a parameter of type `YieldBuffer<T> &`, where T
 is the type of object yielded from the enumerator.
@@ -47,7 +47,8 @@ has completed.
 If the last call to `Next()` returned true, then calling `GetYield()` will
 return a reference to the last object yielded by the coroutine.
 
-(*Not done yet:*) If you destruct an Enumerator<T> before the coroutine returns,
-transfer will be transferred back to the coroutine, and an operation_canceled
-exception will be thrown. This exception will be caught and handled by this
-library, and transfer will be returned to the Enumerator<T> constructor.
+*Not done yet:* If you destruct an Enumerator<T> before the coroutine runs to
+completion, control will be transferred back to the coroutine, and an
+`operation_canceled` exception will be thrown. This exception will be caught
+and handled by this library, and transfer will be returned to the
+`Enumerator<T>` constructor.
