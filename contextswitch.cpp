@@ -3,6 +3,7 @@
 #include <cstdlib>
 
 #include <Windows.h>
+#include <stdexcept>
 #include <cstdio>
 #include <cstdint>
 #include <malloc.h>
@@ -168,100 +169,6 @@ public:
   }
 };
 
-//extern "C" SavedContextFrame *ScheduleTask(SavedContextFrame *rsp)
-//{
-//  // Save outgoing task's frame
-//  current_task->rsp = rsp;
-//
-//  // Update our stack range
-//  GetTibStackRange(current_task);
-//
-//  // This only loops if there is work to do and current task is root task
-//  // Usually, it doesn't loop
-//  do
-//  {
-//    // See if outgoing task needs self destruct
-//    if (current_task->state == Task::EXITED)
-//    {
-//      current_task_iterator = tasks.erase(current_task->taskmapiter);
-//      if (current_task_iterator == tasks.end())
-//        current_task_iterator = tasks.begin();
-//      current_task = &current_task_iterator->second;
-//    }
-//    else
-//    {
-//      // Advance it, and special case going off the end
-//      if (++current_task_iterator == tasks.end())
-//        current_task_iterator = tasks.begin();
-//      current_task = &current_task_iterator->second;
-//    }
-//  }
-//  while (current_task->state == Task::ROOT && tasks.size() > 1);
-//
-//  // Load TIB from task
-//  SetTibStackRange(current_task);
-//
-//  return current_task->rsp;
-//}
-
-//void test_thread(void *a1, void *a2, void *a3, void *a4)
-//{
-//  for (auto i = 0; i < (1<<12); ++i)
-//    SwitchToNextTask();
-//}
-
-//void test_thread2(void *a1, void *a2, void *a3, void *a4)
-// {
-//  for (auto i = 0; i < 1<<12; ++i)
-//  {
-//    union Horrible
-//    {
-//      __m128i mem;
-//      int ints[4];
-//    } h;
-//
-//    __m128i *readme = &h.mem;
-//    __m128i r0, r1, r2, r3, r4, r5, r6, r7;
-//    __m128i r8, r9,r10,r11,r12,r13,r14,r15;
-//    r0  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r1  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r2  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r3  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r4  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r5  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r6  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r7  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r8  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r9  = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r10 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r11 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r12 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r13 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r14 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r15 = _mm_or_si128(_mm_setzero_si128(), *readme); SwitchToNextTask();
-//    r0  = _mm_or_si128(r0 , r1 );
-//    r2  = _mm_or_si128(r2 , r3 );
-//    r4  = _mm_or_si128(r4 , r5 );
-//    r6  = _mm_or_si128(r6 , r7 );
-//    r8  = _mm_or_si128(r8 , r9 );
-//    r10 = _mm_or_si128(r10, r11);
-//    r12 = _mm_or_si128(r12, r13);
-//    r14 = _mm_or_si128(r14, r15);
-//    r0  = _mm_or_si128(r0 , r2 );
-//    r4  = _mm_or_si128(r4 , r6 );
-//    r8  = _mm_or_si128(r8 , r10);
-//    r10 = _mm_or_si128(r10, r12);
-//    r12 = _mm_or_si128(r12, r14);
-//    r0  = _mm_or_si128(r0 , r4 );
-//    r8  = _mm_or_si128(r8 , r12);
-//    r0  = _mm_or_si128(r0 , r8);
-//    *readme = r0;
-//    //printf("0x%p 0x%p 0x%p 0x%p\n", a1, a2, a3, a4);
-//    SwitchToNextTask();
-//  }
-//  //printf("0x%p 0x%p 0x%p 0x%p - done\n", a1, a2, a3, a4);
-//}
-
 template<typename C, typename R, typename A>
 auto ArgumentType(R (C::*)(A)) -> A;
 
@@ -373,6 +280,18 @@ public:
   }
 };
 
+void TestThrowInCoroutineNoYield(YieldBuffer<int> &out)
+{
+  try
+  {
+    throw std::logic_error("Expected exception for testing");
+  }
+  catch (const std::logic_error &e)
+  {
+    std::cout << "Exception caught" << std::endl;
+  }
+}
+
 void TestEnumeratorCoroutine(YieldBuffer<int> &out)
 {
   int i = 1;
@@ -384,16 +303,18 @@ void TestEnumeratorCoroutine(YieldBuffer<int> &out)
   while (i < (1<<20));
 }
 
-void Test()
+template<typename Y>
+void Test(void (*coroutine)(YieldBuffer<Y>&))
 {
-  for (Enumerator<int> powersOfTwo(TestEnumeratorCoroutine); powersOfTwo.Next(); )
+  for (Enumerator<int> enumerator(coroutine); enumerator.Next(); )
   {
-    std::cout << powersOfTwo.GetYield() << std::endl;
+    std::cout << enumerator.GetYield() << std::endl;
   }
 }
 
 int main()
 {
-  Test();
+  Test(TestEnumeratorCoroutine);
+  Test(TestThrowInCoroutineNoYield);
   return 0;
 }
