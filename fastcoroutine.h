@@ -120,3 +120,109 @@ namespace FastCoroutine
     Y &GetYield();
   };
 }
+
+// ============================================================================
+// YieldBuffer<T>
+// ============================================================================
+
+template<typename Y>
+FastCoroutine::YieldBuffer<Y>::YieldBuffer(Enumerator<Y> &owner)
+  : owner(owner)
+{
+}
+
+template<typename Y> template<typename R>
+typename std::enable_if<std::is_convertible<R,Y>::value>::type
+FastCoroutine::YieldBuffer<Y>::YieldReturn(R &&result)
+{
+  buffer = std::forward<R>(result);
+  owner.ReturnToOwner();
+}
+
+// ============================================================================
+// Enumerator<Y>
+// ============================================================================
+
+// Thunk converts C interface back to object reference
+template<typename Y>
+void FastCoroutine::Enumerator<Y>::StartupThunk(void *a, void *, void *, void *)
+{
+  Enumerator &self = *reinterpret_cast<Enumerator*>(a);
+  try
+  {
+    self.routine(self.buffer);
+  }
+  catch (CoroutineCanceled)
+  {
+  }
+  self.done = true;
+  self.ReturnToOwner();
+}
+
+template<typename Y>
+template<typename R>
+FastCoroutine::Enumerator<Y>::Enumerator(R &&routine,
+  typename std::enable_if<
+    std::is_convertible<R,RoutineType>::value
+  >::type *)
+  : buffer(*this)
+  , routine(std::forward<R>(routine))
+  , started(false)
+  , done(false)
+  , cancel(false)
+  , workerTask(0)
+  , selfTask(&workerTask)
+{
+  // Create a task for the routine
+  // We pass a function pointer to the compiler generated thunk for this yield type
+  workerTask.CreateContext(StartupThunk, this, nullptr, nullptr, nullptr);
+}
+
+template<typename Y>
+FastCoroutine::Enumerator<Y>::~Enumerator()
+{
+  if (!done && started)
+  {
+    // Need to force coroutine to exit
+
+    // Setting the cancel flag causes an exception to be thrown
+    // in the coroutine context.
+    cancel = true;
+
+    // The CoroutineCanceled exception is caught and execution is
+    // resumed and the ReturnToCoroutine returns
+    ReturnToCoroutine();
+  }
+}
+
+template<typename Y>
+void FastCoroutine::Enumerator<Y>::ReturnToOwner()
+{
+  selfTask.SwitchTo(workerTask);
+
+  if (cancel)
+    throw CoroutineCanceled();
+}
+
+template<typename Y>
+void FastCoroutine::Enumerator<Y>::ReturnToCoroutine()
+{
+  workerTask.SwitchTo(selfTask);
+}
+
+// Returns true if the coroutine is NOT finished
+template<typename Y>
+bool FastCoroutine::Enumerator<Y>::Next()
+{
+  // Switch to the coroutine and execute
+  // until it yields something or returns
+  ReturnToCoroutine();
+  return !done;
+}
+
+template<typename Y>
+Y &FastCoroutine::Enumerator<Y>::GetYield()
+{
+  return buffer.buffer;
+}
+

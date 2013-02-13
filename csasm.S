@@ -138,5 +138,6 @@ StartNewTask:
 	movd %r14,%xmm2
 	movd %r15,%xmm3
 	call *%rbp
+  // Should never reach here
   call task_terminate
 
