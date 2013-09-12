@@ -97,9 +97,6 @@ void FastCoroutine::Task::CreateContext(
   void *a2, void *a3)
 {
   // Allocate a new stack and put the context at the end of it
-  // We need to make sure that the stack is misaligned, because it
-  // is always misaligned upon the call to SwitchTo*Task
-  // So we add 8
   stacksize = 1<<20;
   stack = (void**)_aligned_malloc(stacksize, 16) + 0;
 
